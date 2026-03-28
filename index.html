@@ -46,10 +46,24 @@
 
     <hr>
 
+    <h3>Sort Spools</h3>
+    <select id="sortMode" onchange="changeSort()">
+        <option value="name_asc">Name (A → Z)</option>
+        <option value="name_desc">Name (Z → A)</option>
+        <option value="remaining_asc">Remaining (Low → High)</option>
+        <option value="remaining_desc">Remaining (High → Low)</option>
+    </select>
+
+    <hr>
+
     <h3>Inventory</h3>
     <div id="inventoryList"></div>
 
 </div>
+
+<!-- Load Firebase BEFORE app logic -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
 <script>
     if ("serviceWorker" in navigator) {
@@ -85,6 +99,11 @@
 
     function updateSpool(id, data) {
         db.collection("users").doc(userId).collection("spools").doc(id).update(data);
+    }
+
+    function changeSort() {
+        sortMode = document.getElementById("sortMode").value;
+        refreshUI();
     }
 
     function sortSpools() {
@@ -185,9 +204,6 @@
         }
     }
 </script>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
 </body>
 </html>
