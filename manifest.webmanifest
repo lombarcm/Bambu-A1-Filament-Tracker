@@ -1,10 +1,10 @@
 {
-  "name": "Filament Tracker",
-  "short_name": "Filament",
-  "start_url": "index.html",
+  "name": "Bambu-A1-Filament-Tracker",
+  "short_name": "A1 Tracker",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f4f4f4",
-  "theme_color": "#0078ff",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
   "icons": [
     {
       "src": "icon-192.png",
