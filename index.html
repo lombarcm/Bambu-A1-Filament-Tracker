@@ -1,236 +1,259 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Filament Tracker</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0078ff">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filament Tracker</title>
 
-<style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
-    h1 { text-align: center; }
-    .card {
-        background: white; padding: 20px; border-radius: 10px;
-        margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    label { font-weight: bold; }
-    input, select, button {
-        width: 100%; padding: 12px; margin-top: 8px; margin-bottom: 16px;
-        border-radius: 6px; border: 1px solid #ccc; font-size: 16px;
-    }
-    button { background: #0078ff; color: white; border: none; cursor: pointer; }
-    button:hover { background: #005fcc; }
-    .spool {
-        padding: 10px; background: #fff; border-radius: 6px;
-        margin-bottom: 10px; border-left: 6px solid #0078ff;
-    }
-    .low { border-left-color: red; }
-    .warn { border-left-color: orange; }
-    .header-row {
-        display: flex; gap: 10px; align-items: center; margin-bottom: 10px;
-    }
-    .header-row select { flex: 1; }
-</style>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.webmanifest">
+
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f4f4f4;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #ccc;
+        }
+
+        .spool {
+            background: #eee;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+
+        .spool.low {
+            background: #ffb3b3;
+        }
+
+        .spool.warn {
+            background: #ffe6a1;
+        }
+
+        button {
+            margin: 5px 0;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: #0078ff;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.delete {
+            background: #d9534f;
+        }
+    </style>
 </head>
 <body>
 
 <h1>Filament Tracker</h1>
 
-<!-- Add Spool -->
-<div class="card">
-    <h2>Add Filament Spool</h2>
-    <label>Spool Name</label>
-    <input id="spoolName">
+<div class="container">
 
-    <label>Starting Weight (g)</label>
-    <input id="startWeight" type="number">
-
+    <h3>Add New Spool</h3>
+    <input id="spoolName" placeholder="Spool name"><br><br>
+    <input id="startWeight" type="number" placeholder="Starting weight (g)"><br><br>
     <button onclick="addSpool()">Add Spool</button>
-</div>
 
-<!-- Subtract Usage -->
-<div class="card">
-    <h2>Subtract Usage</h2>
-    <label>Select Spool</label>
-    <select id="spoolSelect"></select>
+    <hr>
 
-    <label>Used (g)</label>
-    <input id="usedAmount" type="number">
+    <h3>Subtract Usage</h3>
+    <select id="spoolSelect"></select><br><br>
+    <input id="usedAmount" type="number" placeholder="Used amount (g)"><br><br>
+    <button onclick="subtractUsage()">Subtract</button>
 
-    <button onclick="subtractUsage()">Apply Usage</button>
-</div>
+    <hr>
 
-<!-- Inventory -->
-<div class="card">
-    <div class="header-row">
-        <h2 style="margin:0;">Spool Inventory</h2>
-        <select id="sortSelect" onchange="changeSort()">
-            <option value="name_asc">Name ↑</option>
-            <option value="name_desc">Name ↓</option>
-            <option value="remaining_desc">Remaining ↑</option>
-            <option value="remaining_asc">Remaining ↓</option>
-        </select>
-    </div>
+    <h3>Inventory</h3>
     <div id="inventoryList"></div>
+
 </div>
 
+<!-- Firebase + App Logic -->
 <script>
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-}
+    // ---------------------------
+    // SERVICE WORKER
+    // ---------------------------
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js");
+    }
 
-// ---------------------------
-// FIREBASE CONFIG (YOUR DATA)
-// ---------------------------
-const firebaseConfig = {
-  apiKey: "AIzaSyAWj3-PhEzQ80c5nDoPHWzuxet1EMiftqg",
-  authDomain: "filament-tracker-26640.firebaseapp.com",
-  projectId: "filament-tracker-26640",
-  storageBucket: "filament-tracker-26640.firebasestorage.app",
-  messagingSenderId: "20991907584",
-  appId: "1:20991907584:web:fa5e2c05e2f2beec73c5e5",
-  measurementId: "G-X102PGTVZN"
-};
+    // ---------------------------
+    // FIREBASE CONFIG
+    // ---------------------------
+    const firebaseConfig = {
+        // 🔥 YOUR FIREBASE CONFIG GOES HERE
+    };
 
-// ---------------------------
-// LOAD FIREBASE SDKs
-// ---------------------------
-const script1 = document.createElement('script');
-script1.src = "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js";
-document.head.appendChild(script1);
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-const script2 = document.createElement('script');
-script2.src = "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js";
-document.head.appendChild(script2);
+    let userId = "defaultUser"; 
+    let spools = [];
+    let sortMode = "name_asc";
 
-let app, db;
-let userId = "default_user"; // You can customize this later
-let spools = [];
-let sortMode = "name_asc";
-
-// ---------------------------
-// INIT FIREBASE
-// ---------------------------
-function initFirebase() {
-    app = firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    subscribeSpools();
-}
-
-// ---------------------------
-// REALTIME SYNC
-// ---------------------------
-function subscribeSpools() {
+    // ---------------------------
+    // REALTIME SYNC
+    // ---------------------------
     db.collection("users").doc(userId).collection("spools")
-      .onSnapshot(snapshot => {
-        spools = [];
-        snapshot.forEach(doc => {
-            let d = doc.data();
-            spools.push({
-                id: doc.id,
-                name: d.name,
-                starting: d.starting,
-                remaining: d.remaining
-            });
+        .onSnapshot(snapshot => {
+            spools = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            refreshUI();
         });
-        refreshUI();
-      });
-}
 
-function saveSpool(spool) {
-    db.collection("users").doc(userId).collection("spools").add(spool);
-}
-
-function updateSpool(id, data) {
-    db.collection("users").doc(userId).collection("spools").doc(id).update(data);
-}
-
-// ---------------------------
-// UI LOGIC
-// ---------------------------
-function sortSpools() {
-    if (sortMode === "name_asc") spools.sort((a,b) => a.name.localeCompare(b.name));
-    if (sortMode === "name_desc") spools.sort((a,b) => b.name.localeCompare(a.name));
-    if (sortMode === "remaining_asc") spools.sort((a,b) => a.remaining - b.remaining);
-    if (sortMode === "remaining_desc") spools.sort((a,b) => b.remaining - a.remaining);
-}
-
-function refreshUI() {
-    sortSpools();
-
-    let select = document.getElementById("spoolSelect");
-    let list = document.getElementById("inventoryList");
-
-    select.innerHTML = "";
-    list.innerHTML = "";
-
-    spools.forEach(s => {
-        let opt = document.createElement("option");
-        opt.value = s.id;
-        opt.textContent = s.name;
-        select.appendChild(opt);
-
-        let div = document.createElement("div");
-        div.className = "spool";
-
-        if (s.remaining < 100) div.classList.add("low");
-        else if (s.remaining < 250) div.classList.add("warn");
-
-        div.innerHTML = `
-            <strong>${s.name}</strong><br>
-            Remaining: ${s.remaining} g
-        `;
-        list.appendChild(div);
-    });
-}
-
-function addSpool() {
-    let name = document.getElementById("spoolName").value.trim();
-    let start = parseFloat(document.getElementById("startWeight").value);
-
-    if (!name || isNaN(start)) {
-        alert("Enter valid spool name and weight.");
-        return;
+    // ---------------------------
+    // FIREBASE HELPERS
+    // ---------------------------
+    function saveSpool(data) {
+        db.collection("users").doc(userId).collection("spools").add(data);
     }
 
-    saveSpool({ name, starting: start, remaining: start });
-
-    document.getElementById("spoolName").value = "";
-    document.getElementById("startWeight").value = "";
-}
-
-function subtractUsage() {
-    let id = document.getElementById("spoolSelect").value;
-    let used = parseFloat(document.getElementById("usedAmount").value);
-
-    if (!id || isNaN(used)) {
-        alert("Enter valid usage.");
-        return;
+    function updateSpool(id, data) {
+        db.collection("users").doc(userId).collection("spools").doc(id).update(data);
     }
 
-    let spool = spools.find(s => s.id === id);
-    if (!spool) return;
+    // ---------------------------
+    // UI LOGIC (UPDATED)
+    // ---------------------------
+    function sortSpools() {
+        if (sortMode === "name_asc") spools.sort((a,b) => a.name.localeCompare(b.name));
+        if (sortMode === "name_desc") spools.sort((a,b) => b.name.localeCompare(a.name));
+        if (sortMode === "remaining_asc") spools.sort((a,b) => a.remaining - b.remaining);
+        if (sortMode === "remaining_desc") spools.sort((a,b) => b.remaining - a.remaining);
+    }
 
-    updateSpool(id, { remaining: Math.max(0, spool.remaining - used) });
+    function refreshUI() {
+        sortSpools();
 
-    document.getElementById("usedAmount").value = "";
-}
+        let select = document.getElementById("spoolSelect");
+        let list = document.getElementById("inventoryList");
 
-function changeSort() {
-    sortMode = document.getElementById("sortSelect").value;
-    refreshUI();
-}
+        select.innerHTML = "";
+        list.innerHTML = "";
 
-// Wait for Firebase scripts to load
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        if (window.firebase) initFirebase();
-        else alert("Firebase failed to load.");
-    }, 500);
-});
+        spools.forEach(s => {
+            let opt = document.createElement("option");
+            opt.value = s.id;
+            opt.textContent = s.name;
+            select.appendChild(opt);
+
+            let div = document.createElement("div");
+            div.className = "spool";
+
+            if (s.remaining < 100) div.classList.add("low");
+            else if (s.remaining < 250) div.classList.add("warn");
+
+            div.innerHTML = `
+                <strong>${s.name}</strong><br>
+                Remaining: ${s.remaining} g<br><br>
+
+                <button onclick="resetWeight('${s.id}')">Reset Weight</button>
+                <button class="delete" onclick="deleteSpool('${s.id}')">Delete</button>
+            `;
+
+            list.appendChild(div);
+        });
+
+        checkLowFilament();
+    }
+
+    // ---------------------------
+    // LOW FILAMENT ALERT SYSTEM
+    // ---------------------------
+    function checkLowFilament() {
+        let low = spools.filter(s => s.remaining < 100);
+
+        if (low.length > 0) {
+            let names = low.map(s => s.name).join(", ");
+            alert(`⚠️ Low filament warning:\n${names}`);
+        }
+    }
+
+    // ---------------------------
+    // ADD SPOOL
+    // ---------------------------
+    function addSpool() {
+        let name = document.getElementById("spoolName").value.trim();
+        let start = parseFloat(document.getElementById("startWeight").value);
+
+        if (!name || isNaN(start)) {
+            alert("Enter valid spool name and weight.");
+            return;
+        }
+
+        saveSpool({ name, starting: start, remaining: start });
+
+        document.getElementById("spoolName").value = "";
+        document.getElementById("startWeight").value = "";
+    }
+
+    // ---------------------------
+    // SUBTRACT USAGE
+    // ---------------------------
+    function subtractUsage() {
+        let id = document.getElementById("spoolSelect").value;
+        let used = parseFloat(document.getElementById("usedAmount").value);
+
+        if (!id || isNaN(used)) {
+            alert("Enter valid usage.");
+            return;
+        }
+
+        let spool = spools.find(s => s.id === id);
+        if (!spool) return;
+
+        updateSpool(id, { remaining: Math.max(0, spool.remaining - used) });
+
+        document.getElementById("usedAmount").value = "";
+    }
+
+    // ---------------------------
+    // RESET WEIGHT
+    // ---------------------------
+    function resetWeight(id) {
+        let newWeight = prompt("Enter new remaining weight (g):");
+        let weight = parseFloat(newWeight);
+
+        if (!isNaN(weight)) {
+            updateSpool(id, { remaining: weight });
+        }
+    }
+
+    // ---------------------------
+    // DELETE SPOOL
+    // ---------------------------
+    function deleteSpool(id) {
+        if (confirm("Delete this spool?")) {
+            db.collection("users").doc(userId).collection("spools").doc(id).delete();
+        }
+    }
 </script>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
 </body>
 </html>
