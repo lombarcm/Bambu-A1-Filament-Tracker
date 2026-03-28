@@ -61,9 +61,10 @@
 
 </div>
 
-<!-- Load Firebase BEFORE app logic -->
+<!-- Firebase SDKs MUST load before app logic -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
 <script>
     if ("serviceWorker" in navigator) {
@@ -83,15 +84,25 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let userId = "defaultUser"; 
+    let userId = null;
     let spools = [];
     let sortMode = "name_asc";
 
-    db.collection("users").doc(userId).collection("spools")
-        .onSnapshot(snapshot => {
-            spools = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            refreshUI();
-        });
+    // Authenticate anonymously, then load data
+    firebase.auth().signInAnonymously().then(user => {
+        userId = user.user.uid;
+        startApp();
+    }).catch(err => {
+        alert("Firebase Auth Error: " + err.message);
+    });
+
+    function startApp() {
+        db.collection("users").doc(userId).collection("spools")
+            .onSnapshot(snapshot => {
+                spools = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                refreshUI();
+            });
+    }
 
     function saveSpool(data) {
         db.collection("users").doc(userId).collection("spools").add(data);
@@ -99,6 +110,12 @@
 
     function updateSpool(id, data) {
         db.collection("users").doc(userId).collection("spools").doc(id).update(data);
+    }
+
+    function deleteSpool(id) {
+        if (confirm("Delete this spool?")) {
+            db.collection("users").doc(userId).collection("spools").doc(id).delete();
+        }
     }
 
     function changeSort() {
@@ -150,7 +167,6 @@
 
     function checkLowFilament() {
         let low = spools.filter(s => s.remaining < 100);
-
         if (low.length > 0) {
             let names = low.map(s => s.name).join(", ");
             alert(`⚠️ Low filament warning:\n${names}`);
@@ -195,12 +211,6 @@
 
         if (!isNaN(weight)) {
             updateSpool(id, { remaining: weight });
-        }
-    }
-
-    function deleteSpool(id) {
-        if (confirm("Delete this spool?")) {
-            db.collection("users").doc(userId).collection("spools").doc(id).delete();
         }
     }
 </script>
